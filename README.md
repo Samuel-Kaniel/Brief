@@ -45,10 +45,12 @@ npx expo start --android   # Android Emulator
 - **Feed** — a Tinder-style swipe deck (`SwipeCardStack`, built on
   `react-native-gesture-handler` + `react-native-reanimated`). Each card shows an
   image, headline, source, timestamp, and a ~60-second summary. Drag right to save
-  a story, left to skip it (skipped stories won't resurface); release past ~28% of
-  the screen width or with enough velocity and the card flings off with a "SAVED" /
-  "SKIP" label fading in as you drag. Tap a card (without dragging) to open the
-  original article.
+  a story, left to skip it; release past ~28% of the screen width or with enough
+  velocity and the card flings off, with a bookmark or X icon badge fading in as
+  you drag to show which way you're headed. Tap a card (without dragging) to open
+  the original article. When you run out of new stories in your topics, an
+  "all caught up" screen offers a manual refresh and, if you've skipped anything,
+  a button to bring skipped stories back into rotation.
 - **Saved** — a plain list of everything you've swiped right on, with a thumbnail,
   tap-to-open, and a remove button. Reachable from the Feed header.
 - **Settings** — change your topics or notification time anytime.
@@ -60,15 +62,24 @@ npx expo start --android   # Android Emulator
 
 Each RSS item is checked, in order, for `media:content`, `media:thumbnail`,
 `media:group > media:content`, `enclosure`, and finally the first `<img>` inside
-`content:encoded`/`description`. If none of those are present (arXiv and
-ScienceDaily's feeds, for example, carry no image at all), the app lazily fetches
-the article page itself and scrapes its `og:image`/`twitter:image` meta tag — only
-for cards currently in the visible stack (top 3), so this never blocks the feed
-from rendering. The resolved (or "not found") result is cached per-article in
-AsyncStorage (`src/services/storage.ts`, `getCachedImage`/`setCachedImage`) so it's
-never re-scraped. If no image can be found at all, the card falls back to a
+`content:encoded`/`description`. When a feed offers more than one size (some
+publishers list several `media:content` variants), the largest is picked; if the
+best size a feed declares is still under 300px on its shorter side (Yahoo
+Finance and BBC both ship ~130–240px thumbnails, for example), it's treated as
+too small to show full-bleed and skipped in favor of the fallback below —
+stretching a tiny thumbnail to card size just looks blurry.
+
+If none of the above are present or usable (arXiv and ScienceDaily's feeds, for
+example, carry no image at all), the app lazily fetches the article page itself
+and scrapes its `og:image`/`twitter:image` meta tag — only for cards currently in
+the visible stack (top 3), so this never blocks the feed from rendering. The
+resolved (or "not found") result is cached per-article in AsyncStorage
+(`src/services/storage.ts`, `getCachedImage`/`setCachedImage`) so it's never
+re-scraped. If no image can be found at all, the card falls back to a
 category-colored, typographic placeholder instead of a broken image box.
-Rendering and on-device caching (memory + disk) is handled by `expo-image`.
+Rendering and on-device caching (memory + disk) is handled by `expo-image`, with
+a light gradient at the very bottom of the photo (not a heavy overlay) so the
+image stays clear and just blends into the card below it.
 
 News comes straight from each publisher's public RSS feed (see the full list in
 `src/data/feeds.ts`) — Ars Technica, MIT Technology Review, arXiv (cs.LG/cs.CV/cs.CL),
@@ -137,10 +148,11 @@ feed refresh.
 - A couple of feeds (e.g. Yahoo Finance) don't include a description in their RSS,
   so those cards fall back to showing just the headline.
 - No offline caching of the feed yet — each open re-fetches from all selected
-  sources.
-- Skipping is permanent (skipped article ids persist in AsyncStorage indefinitely).
-  There's no "undo" or "clear skipped" action yet if you swipe something away by
-  mistake.
+  sources (which does mean you're always seeing the latest available articles,
+  sorted newest-first — there's no stale-cache layer to go out of date).
+- There's no per-story "undo" — skipping is a deliberate action, but if you skip
+  something by mistake, "Show skipped stories again" on the empty-deck screen
+  brings everything back at once rather than restoring just the last one.
 
 ## If you upgrade react-native-reanimated
 

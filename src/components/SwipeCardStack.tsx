@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -152,11 +153,11 @@ function TopCard({
       <Animated.View entering={ENTRANCE} style={styles.cardSlot}>
         <Animated.View style={[styles.stackedInner, animatedStyle]}>
           <NewsCard article={article} />
-          <Animated.View pointerEvents="none" style={[styles.overlayLabel, styles.saveLabel, saveLabelStyle]}>
-            <Text style={[styles.overlayText, styles.saveText]}>SAVED</Text>
+          <Animated.View pointerEvents="none" style={[styles.overlayBadge, styles.saveBadge, saveLabelStyle]}>
+            <Feather name="bookmark" size={32} color="#22c55e" />
           </Animated.View>
-          <Animated.View pointerEvents="none" style={[styles.overlayLabel, styles.skipLabel, skipLabelStyle]}>
-            <Text style={[styles.overlayText, styles.skipText]}>SKIP</Text>
+          <Animated.View pointerEvents="none" style={[styles.overlayBadge, styles.skipBadge, skipLabelStyle]}>
+            <Feather name="x" size={36} color="#ef4444" />
           </Animated.View>
         </Animated.View>
       </Animated.View>
@@ -168,17 +169,17 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   cardSlot: { ...StyleSheet.absoluteFillObject, padding: 16 },
   stackedInner: { flex: 1 },
-  overlayLabel: {
+  overlayBadge: {
     position: 'absolute',
     top: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     borderWidth: 4,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(10,12,17,0.55)',
   },
-  saveLabel: { right: 32, borderColor: '#22c55e', transform: [{ rotate: '-12deg' }] },
-  skipLabel: { left: 32, borderColor: '#ef4444', transform: [{ rotate: '12deg' }] },
-  overlayText: { fontSize: 28, fontWeight: '900', letterSpacing: 2 },
-  saveText: { color: '#22c55e' },
-  skipText: { color: '#ef4444' },
+  saveBadge: { right: 32, borderColor: '#22c55e', transform: [{ rotate: '-12deg' }] },
+  skipBadge: { left: 32, borderColor: '#ef4444', transform: [{ rotate: '12deg' }] },
 });

@@ -8,7 +8,7 @@ import AnimatedPressable from '../components/AnimatedPressable';
 import { Article } from '../types';
 import { FEED_SOURCES } from '../data/feeds';
 import { fetchArticlesForCategories } from '../services/rss';
-import { loadSavedIds, loadSkippedIds, markSaved, markSkipped } from '../services/storage';
+import { loadSavedIds, loadSkippedIds, markSaved, markSkipped, resetSkipped } from '../services/storage';
 import { usePreferences } from '../context/PreferencesContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -74,6 +74,11 @@ export default function FeedScreen({ navigation }: Props) {
   const handleSwipeLeft = useCallback(async (article: Article) => {
     const updated = await markSkipped(article.id);
     setSkippedIds(new Set(updated));
+  }, []);
+
+  const handleResetSkipped = useCallback(async () => {
+    await resetSkipped();
+    setSkippedIds(new Set());
   }, []);
 
   const handleTapOpen = useCallback((article: Article) => {
@@ -143,10 +148,20 @@ export default function FeedScreen({ navigation }: Props) {
             renderEmpty={() => (
               <View style={styles.centered}>
                 <Text style={styles.emptyTitle}>You're all caught up</Text>
-                <Text style={styles.emptyBody}>Swipe right to save a story, left to skip it.</Text>
+                <Text style={styles.emptyBody}>
+                  No new stories in your topics right now — publishers haven't posted anything
+                  since your last visit. Check back later, or pull up stories you skipped.
+                </Text>
                 <AnimatedPressable style={styles.actionButton} onPress={() => load()}>
-                  <Text style={styles.actionButtonText}>Refresh feed</Text>
+                  <Text style={styles.actionButtonText}>Check for new stories</Text>
                 </AnimatedPressable>
+                {skippedIds.size > 0 && (
+                  <AnimatedPressable style={styles.secondaryButton} onPress={handleResetSkipped}>
+                    <Text style={styles.secondaryButtonText}>
+                      Show {skippedIds.size} skipped {skippedIds.size === 1 ? 'story' : 'stories'} again
+                    </Text>
+                  </AnimatedPressable>
+                )}
               </View>
             )}
           />
@@ -177,6 +192,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   actionButtonText: { color: '#fff', fontWeight: '600' },
+  secondaryButton: {
+    marginTop: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  secondaryButtonText: { color: '#93c5fd', fontWeight: '600', fontSize: 14 },
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

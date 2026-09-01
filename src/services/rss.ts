@@ -49,9 +49,15 @@ function extractLink(item: Record<string, unknown>): string {
   return '';
 }
 
+// Below this, a feed-declared thumbnail is treated as "too small to be worth
+// showing full-bleed" and we fall through to the og:image scrape instead,
+// which typically returns a proper hero-sized photo (~1200x630).
+const MIN_ACCEPTABLE_IMAGE_DIMENSION = 300;
+
 function extractUrlPreferringImageType(value: unknown): string | undefined {
   if (value == null) return undefined;
   const candidates = Array.isArray(value) ? value : [value];
+  let best: { url: string; minDim: number } | undefined;
   let fallback: string | undefined;
   for (const candidate of candidates) {
     if (typeof candidate !== 'object' || candidate === null) continue;
@@ -63,7 +69,18 @@ function extractUrlPreferringImageType(value: unknown): string | undefined {
       fallback = fallback ?? url;
       continue;
     }
-    return url;
+    const width = Number(obj['@_width']) || 0;
+    const height = Number(obj['@_height']) || 0;
+    // No declared size is treated as "unknown, assume acceptable" rather than
+    // penalized — plenty of feeds omit width/height on perfectly good images.
+    const minDim = width && height ? Math.min(width, height) : Infinity;
+    if (!best || minDim > best.minDim) {
+      best = { url, minDim };
+    }
+  }
+  if (best) {
+    if (best.minDim < MIN_ACCEPTABLE_IMAGE_DIMENSION) return undefined;
+    return best.url;
   }
   return fallback;
 }

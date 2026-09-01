@@ -83,6 +83,10 @@ export async function markSkipped(id: string): Promise<Set<string>> {
   return set;
 }
 
+export async function resetSkipped(): Promise<void> {
+  await AsyncStorage.removeItem(SKIPPED_IDS_KEY);
+}
+
 async function loadImageCache(): Promise<Record<string, string | null>> {
   const raw = await AsyncStorage.getItem(IMAGE_CACHE_KEY);
   if (!raw) return {};

@@ -28,8 +28,8 @@ export default function NewsCard({ article }: Props) {
       <View style={styles.imageWrap}>
         <ArticleImage article={article} categoryLabel={categoryLabel} style={styles.image} />
         <LinearGradient
-          colors={['transparent', 'rgba(10,12,17,0.5)', '#12151c']}
-          locations={[0, 0.65, 1]}
+          colors={['transparent', 'transparent', 'rgba(18,21,28,0.9)']}
+          locations={[0, 0.78, 1]}
           style={styles.imageGradient}
           pointerEvents="none"
         />
