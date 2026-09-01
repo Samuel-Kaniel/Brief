@@ -1,8 +1,8 @@
 # Brief
 
-A swipeable, mobile news feed built with Expo (React Native + TypeScript). Pick your
-topics, get a daily notification, and read every story as a ~60-second digest pulled
-live from free public RSS feeds — no API key required.
+A mobile news reader built with Expo (React Native + TypeScript). Aggregates live
+public RSS feeds into a single swipeable card interface — no API key required.
+Configurable by topic, with scheduled local notifications for a daily digest.
 
 Topics covered: Technology, AI/ML/Computer Vision/NLP, System Design, Politics,
 Finance, Science, Health, and Education.
@@ -42,15 +42,15 @@ npx expo start --android   # Android Emulator
 
 - **Onboarding** — first launch asks you to pick topics and a daily digest time.
   Saved to on-device storage (`AsyncStorage`), so it only runs once.
-- **Feed** — a Tinder-style swipe deck (`SwipeCardStack`, built on
-  `react-native-gesture-handler` + `react-native-reanimated`). Each card shows an
-  image, headline, source, timestamp, and a ~60-second summary. Drag right to save
-  a story, left to skip it; release past ~28% of the screen width or with enough
-  velocity and the card flings off, with a bookmark or X icon badge fading in as
-  you drag to show which way you're headed. Tap a card (without dragging) to open
-  the original article. When you run out of new stories in your topics, an
-  "all caught up" screen offers a manual refresh and, if you've skipped anything,
-  a button to bring skipped stories back into rotation.
+- **Feed** — a gesture-driven card deck (`SwipeCardStack`, built on
+  `react-native-gesture-handler` + `react-native-reanimated`). Each card renders an
+  image, headline, source, timestamp, and a ~60-second summary. Swiping right saves
+  the story, left dismisses it; crossing ~28% of screen width or exceeding a
+  velocity threshold commits the action and the card exits, with a bookmark or X
+  icon fading in during the drag to indicate which action is pending. Tapping
+  without dragging opens the source article. Once all stories in the selected
+  topics are exhausted, an empty-state screen provides a manual refresh control
+  and, if any stories were dismissed, an option to restore them.
 - **Saved** — a plain list of everything you've swiped right on, with a thumbnail,
   tap-to-open, and a remove button. Reachable from the Feed header.
 - **Settings** — change your topics or notification time anytime.
