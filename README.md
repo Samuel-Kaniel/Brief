@@ -7,6 +7,8 @@ live from free public RSS feeds — no API key required.
 Topics covered: Technology, AI/ML/Computer Vision/NLP, System Design, Politics,
 Finance, Science, Health, and Education.
 
+<img src="docs/screenshot-feed.jpg" alt="Brief feed screen: a swipeable news card with photo, category tag, headline, summary, and source" width="280" />
+
 ## Running it on your phone
 
 You don't need Xcode or Android Studio — just the free **Expo Go** app.
