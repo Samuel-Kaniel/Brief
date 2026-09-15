@@ -7,7 +7,22 @@ Configurable by topic, with scheduled local notifications for a daily digest.
 Topics covered: Technology, AI/ML/Computer Vision/NLP, System Design, Politics,
 Finance, Science, Health, and Education.
 
-<img src="docs/screenshot-feed.jpg" alt="Brief feed screen: a swipeable news card with photo, category tag, headline, summary, and source" width="280" />
+## How to use
+
+<p align="center">
+  <img src="docs/screenshot-feed.jpg" alt="Brief feed screen: a swipeable news card with photo, category tag, headline, summary, and source" width="280" />
+</p>
+
+Walk through the app in this order:
+
+1. **Onboarding** — first launch, pick the topics you want and a daily digest time, then tap **Start reading**. This is stored on-device, so it only runs once.
+2. **Feed** — swipe **right** to save a story, **left** to skip it. Tap a card (without dragging) to open the source article. After a skip, a **Skipped · Undo** bar appears for a few seconds if you change your mind.
+3. **Saved** — open the bookmark icon in the feed header to see everything you swiped right on. Tap a row to open it, or remove it from the list.
+4. **Settings** — open the gear icon in the feed header to change topics or the digest time anytime.
+
+Use **Expo Go** (or a native build) for the full feed. The web preview is CORS-limited: most publisher RSS hosts omit CORS headers, so many sources will not load in the browser.
+
+A full video demo is not in the repo yet. Drop a short recording at [`docs/brief-demo.mp4`](docs/brief-demo.mp4) later and it can replace the screenshot above.
 
 ## Running it on your phone
 
