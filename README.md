@@ -47,9 +47,14 @@ npx expo start --android   # Android Emulator
   the story, left dismisses it; crossing ~28% of screen width or exceeding a
   velocity threshold commits the action and the card exits, with a bookmark or X
   icon fading in during the drag to indicate which action is pending. Tapping
-  without dragging opens the source article. Once all stories in the selected
+  without dragging opens the source article. A left-swipe also writes a last-skip
+  pending undo (the article plus a timestamp) to AsyncStorage and shows a ~4s
+  **Skipped · Undo** bar; tapping Undo unskips that story and pins it to the front
+  of the deck. The bar auto-hides without clearing storage — relaunching within 5
+  minutes shows Undo again, but does not auto-restore the card. A newer skip
+  overwrites the pending undo (stack of one). Once all stories in the selected
   topics are exhausted, an empty-state screen provides a manual refresh control
-  and, if any stories were dismissed, an option to restore them.
+  and, if any stories were dismissed, an option to restore them all.
 - **Saved** — a plain list of everything you've swiped right on, with a thumbnail,
   tap-to-open, and a remove button. Reachable from the Feed header.
 - **Settings** — change your topics or notification time anytime.
@@ -98,7 +103,7 @@ src/
     rss.ts           Fetches + parses RSS/RDF/Atom feeds into Article[], incl. image extraction
     summarizer.ts     Turns a raw RSS description into a ~60-second digest
     ogImage.ts        Best-effort og:image/twitter:image scrape, used as an image fallback
-    storage.ts        AsyncStorage helpers (preferences, saved articles, skipped ids, image cache)
+    storage.ts        AsyncStorage helpers (preferences, saved articles, skipped ids, pending undo, image cache)
     notifications.ts  Schedules the daily local notification
   hooks/useArticleImage.ts   Resolves an article's image: feed → cache → og:image scrape
   context/PreferencesContext.tsx   App-wide preferences state
@@ -151,9 +156,9 @@ feed refresh.
 - No offline caching of the feed yet — each open re-fetches from all selected
   sources (which does mean you're always seeing the latest available articles,
   sorted newest-first — there's no stale-cache layer to go out of date).
-- There's no per-story "undo" — skipping is a deliberate action, but if you skip
-  something by mistake, "Show skipped stories again" on the empty-deck screen
-  brings everything back at once rather than restoring just the last one.
+- Skip undo is last-in only (a stack of one) and expires after 5 minutes. There is
+  no undo for a save. The empty-deck "Show skipped stories again" control still
+  bulk-restores every dismissed story and clears any pending undo.
 
 ## If you upgrade react-native-reanimated
 

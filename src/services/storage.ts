@@ -4,8 +4,12 @@ import { Article, UserPreferences } from '../types';
 const PREFERENCES_KEY = 'news-app:preferences';
 const SAVED_ARTICLES_KEY = 'news-app:saved-articles';
 const SKIPPED_IDS_KEY = 'news-app:skipped-ids';
+const PENDING_UNDO_KEY = 'news-app:pending-undo';
 const IMAGE_CACHE_KEY = 'news-app:image-cache';
 const IMAGE_CACHE_MAX_ENTRIES = 500;
+const PENDING_UNDO_TTL_MS = 5 * 60 * 1000;
+
+export type PendingUndo = { article: Article; skippedAt: number };
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   categories: [],
@@ -83,8 +87,44 @@ export async function markSkipped(id: string): Promise<Set<string>> {
   return set;
 }
 
+export async function unmarkSkipped(id: string): Promise<Set<string>> {
+  const set = await loadSkippedIds();
+  set.delete(id);
+  await saveIdSet(SKIPPED_IDS_KEY, set);
+  return set;
+}
+
+export async function savePendingUndo(article: Article): Promise<void> {
+  const pending: PendingUndo = { article, skippedAt: Date.now() };
+  await AsyncStorage.setItem(PENDING_UNDO_KEY, JSON.stringify(pending));
+}
+
+export async function loadPendingUndo(): Promise<PendingUndo | null> {
+  const raw = await AsyncStorage.getItem(PENDING_UNDO_KEY);
+  if (!raw) return null;
+  try {
+    const pending = JSON.parse(raw) as PendingUndo;
+    if (
+      !pending?.article?.id ||
+      typeof pending.skippedAt !== 'number' ||
+      Date.now() - pending.skippedAt > PENDING_UNDO_TTL_MS
+    ) {
+      await clearPendingUndo();
+      return null;
+    }
+    return pending;
+  } catch {
+    await clearPendingUndo();
+    return null;
+  }
+}
+
+export async function clearPendingUndo(): Promise<void> {
+  await AsyncStorage.removeItem(PENDING_UNDO_KEY);
+}
+
 export async function resetSkipped(): Promise<void> {
-  await AsyncStorage.removeItem(SKIPPED_IDS_KEY);
+  await Promise.all([AsyncStorage.removeItem(SKIPPED_IDS_KEY), clearPendingUndo()]);
 }
 
 async function loadImageCache(): Promise<Record<string, string | null>> {
