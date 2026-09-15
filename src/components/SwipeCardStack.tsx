@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -39,13 +39,20 @@ export default function SwipeCardStack({ articles, onSwipeRight, onSwipeLeft, on
   // a card for a frame (index=1 against a list that already dropped the
   // swiped item). Track exiting IDs instead and always show remaining[0].
   const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set());
+  const prevIdsRef = useRef<Set<string>>(new Set(articles.map((article) => article.id)));
 
   useEffect(() => {
+    const currentIds = new Set(articles.map((article) => article.id));
+    const previousIds = prevIdsRef.current;
     setExitingIds((prev) => {
       let changed = false;
       const next = new Set<string>();
       for (const id of prev) {
-        if (articles.some((article) => article.id === id)) {
+        const stillInList = currentIds.has(id);
+        // Undo / "show skipped again" re-inserts an id that had left the
+        // filtered list. Drop it from exiting so the restored card can show.
+        const reentered = stillInList && !previousIds.has(id);
+        if (stillInList && !reentered) {
           next.add(id);
         } else {
           changed = true;
@@ -54,6 +61,7 @@ export default function SwipeCardStack({ articles, onSwipeRight, onSwipeLeft, on
       if (!changed && next.size === prev.size) return prev;
       return next;
     });
+    prevIdsRef.current = currentIds;
   }, [articles]);
 
   const remaining = useMemo(
