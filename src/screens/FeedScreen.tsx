@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import SwipeCardStack from '../components/SwipeCardStack';
@@ -8,19 +8,35 @@ import AnimatedPressable from '../components/AnimatedPressable';
 import { Article } from '../types';
 import { FEED_SOURCES } from '../data/feeds';
 import { fetchArticlesForCategories } from '../services/rss';
-import { loadSavedIds, loadSkippedIds, markSaved, markSkipped, resetSkipped } from '../services/storage';
+import {
+  clearPendingUndo,
+  loadPendingUndo,
+  loadSavedIds,
+  loadSkippedIds,
+  markSaved,
+  markSkipped,
+  resetSkipped,
+  savePendingUndo,
+  unmarkSkipped,
+} from '../services/storage';
 import { usePreferences } from '../context/PreferencesContext';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Feed'>;
 
+const UNDO_BAR_MS = 4000;
+
 export default function FeedScreen({ navigation }: Props) {
   const { preferences } = usePreferences();
+  const insets = useSafeAreaInsets();
   const [articles, setArticles] = useState<Article[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+  const [lastSkipped, setLastSkipped] = useState<Article | null>(null);
+  const [restoredFront, setRestoredFront] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // A content-based key (not the array reference) so a re-render that leaves
   // the actual category selection untouched never triggers a pointless refetch.
@@ -29,7 +45,35 @@ export default function FeedScreen({ navigation }: Props) {
     [preferences.categories]
   );
 
+  const hideUndoBar = useCallback(() => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    setLastSkipped(null);
+  }, []);
+
+  const presentUndoBar = useCallback((article: Article) => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+    }
+    setLastSkipped(article);
+    undoTimerRef.current = setTimeout(() => {
+      // Auto-dismiss hides the bar only — persisted pending undo stays until TTL,
+      // explicit Undo, or a newer skip.
+      setLastSkipped(null);
+      undoTimerRef.current = null;
+    }, UNDO_BAR_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
+
   const load = useCallback(async () => {
+    setRestoredFront(null);
     if (preferences.categories.length === 0) {
       setArticles([]);
       setLoading(false);
@@ -38,14 +82,20 @@ export default function FeedScreen({ navigation }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [{ articles: fetched, failedSources }, saved, skipped] = await Promise.all([
+      const [{ articles: fetched, failedSources }, saved, skipped, pending] = await Promise.all([
         fetchArticlesForCategories(FEED_SOURCES, preferences.categories),
         loadSavedIds(),
         loadSkippedIds(),
+        loadPendingUndo(),
       ]);
       setSavedIds(saved);
       setSkippedIds(skipped);
       setArticles(fetched);
+      if (pending) {
+        presentUndoBar(pending.article);
+      } else {
+        hideUndoBar();
+      }
       if (fetched.length === 0 && failedSources.length > 0) {
         setError('Could not reach any news sources. Try refreshing.');
       }
@@ -55,7 +105,7 @@ export default function FeedScreen({ navigation }: Props) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriesKey]);
+  }, [categoriesKey, presentUndoBar, hideUndoBar]);
 
   useEffect(() => {
     load();
@@ -66,20 +116,44 @@ export default function FeedScreen({ navigation }: Props) {
     [articles, savedIds, skippedIds]
   );
 
+  const deck = useMemo(() => {
+    if (!restoredFront) return visibleArticles;
+    return [restoredFront, ...visibleArticles.filter((a) => a.id !== restoredFront.id)];
+  }, [visibleArticles, restoredFront]);
+
   const handleSwipeRight = useCallback(async (article: Article) => {
+    setRestoredFront(null);
     const updated = await markSaved(article);
     setSavedIds(new Set(Object.keys(updated)));
   }, []);
 
-  const handleSwipeLeft = useCallback(async (article: Article) => {
-    const updated = await markSkipped(article.id);
+  const handleSwipeLeft = useCallback(
+    async (article: Article) => {
+      setRestoredFront(null);
+      const updated = await markSkipped(article.id);
+      await savePendingUndo(article);
+      setSkippedIds(new Set(updated));
+      presentUndoBar(article);
+    },
+    [presentUndoBar]
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (!lastSkipped) return;
+    const article = lastSkipped;
+    hideUndoBar();
+    const updated = await unmarkSkipped(article.id);
+    await clearPendingUndo();
     setSkippedIds(new Set(updated));
-  }, []);
+    setRestoredFront(article);
+  }, [lastSkipped, hideUndoBar]);
 
   const handleResetSkipped = useCallback(async () => {
     await resetSkipped();
     setSkippedIds(new Set());
-  }, []);
+    hideUndoBar();
+    setRestoredFront(null);
+  }, [hideUndoBar]);
 
   const handleTapOpen = useCallback((article: Article) => {
     Linking.openURL(article.link).catch(() => {});
@@ -131,7 +205,7 @@ export default function FeedScreen({ navigation }: Props) {
         </View>
       </SafeAreaView>
 
-      {error && visibleArticles.length === 0 ? (
+      {error && deck.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyBody}>{error}</Text>
           <AnimatedPressable style={styles.actionButton} onPress={() => load()}>
@@ -139,9 +213,9 @@ export default function FeedScreen({ navigation }: Props) {
           </AnimatedPressable>
         </View>
       ) : (
-        <View style={styles.deckArea}>
+        <View style={[styles.deckArea, lastSkipped ? styles.deckAreaWithUndo : null]}>
           <SwipeCardStack
-            articles={visibleArticles}
+            articles={deck}
             onSwipeRight={handleSwipeRight}
             onSwipeLeft={handleSwipeLeft}
             onTapOpen={handleTapOpen}
@@ -165,6 +239,16 @@ export default function FeedScreen({ navigation }: Props) {
               </View>
             )}
           />
+        </View>
+      )}
+
+      {lastSkipped && (
+        <View pointerEvents="auto" style={[styles.undoBar, { marginBottom: Math.max(insets.bottom, 12) }]}>
+          <Text style={styles.undoBarLabel}>Skipped</Text>
+          <Text style={styles.undoBarDot}>·</Text>
+          <AnimatedPressable onPress={handleUndo} hitSlop={8}>
+            <Text style={styles.undoBarAction}>Undo</Text>
+          </AnimatedPressable>
         </View>
       )}
     </View>
@@ -219,4 +303,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deckArea: { flex: 1, paddingBottom: 24 },
+  deckAreaWithUndo: { paddingBottom: 8 },
+  undoBar: {
+    marginHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#374151',
+    backgroundColor: '#1a1f2b',
+  },
+  undoBarLabel: { color: '#9ca3af', fontWeight: '600', fontSize: 14 },
+  undoBarDot: { color: '#6b7280', fontWeight: '600', fontSize: 14 },
+  undoBarAction: { color: '#93c5fd', fontWeight: '600', fontSize: 14 },
 });

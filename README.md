@@ -13,9 +13,8 @@ Finance, Science, Health, and Education.
 
 You don't need Xcode or Android Studio — just the free **Expo Go** app.
 
-1. Install dependencies (only needed once):
+1. Install dependencies (only needed once) from the repo root:
    ```bash
-   cd news-app
    npm install
    ```
 2. Start the dev server:
@@ -31,6 +30,11 @@ Your computer and phone need to be on the same Wi‑Fi network. If the QR code
 connection doesn't work, press `w` in the terminal to try the web preview instead,
 or switch the dev server to tunnel mode (press `s` then choose "tunnel" in the
 Expo CLI, or run `npx expo start --tunnel`).
+
+The web preview is fine for checking layout and navigation. Most publisher RSS
+hosts do not send CORS headers, so the in-browser feed will miss many sources
+(a few, such as NASA APOD, may still load). Expo Go / a native build is the
+supported way to read the full feed.
 
 To run in a simulator instead of a physical phone (requires Xcode/Android Studio):
 ```bash
@@ -48,9 +52,14 @@ npx expo start --android   # Android Emulator
   the story, left dismisses it; crossing ~28% of screen width or exceeding a
   velocity threshold commits the action and the card exits, with a bookmark or X
   icon fading in during the drag to indicate which action is pending. Tapping
-  without dragging opens the source article. Once all stories in the selected
+  without dragging opens the source article. A left-swipe also writes a last-skip
+  pending undo (the article plus a timestamp) to AsyncStorage and shows a ~4s
+  **Skipped · Undo** bar; tapping Undo unskips that story and pins it to the front
+  of the deck. The bar auto-hides without clearing storage — relaunching within 5
+  minutes shows Undo again, but does not auto-restore the card. A newer skip
+  overwrites the pending undo (stack of one). Once all stories in the selected
   topics are exhausted, an empty-state screen provides a manual refresh control
-  and, if any stories were dismissed, an option to restore them.
+  and, if any stories were dismissed, an option to restore them all.
 - **Saved** — a plain list of everything you've swiped right on, with a thumbnail,
   tap-to-open, and a remove button. Reachable from the Feed header.
 - **Settings** — change your topics or notification time anytime.
@@ -84,8 +93,10 @@ image stays clear and just blends into the card below it.
 News comes straight from each publisher's public RSS feed (see the full list in
 `src/data/feeds.ts`) — Ars Technica, MIT Technology Review, arXiv (cs.LG/cs.CV/cs.CL),
 Netflix/AWS/HighScalability engineering blogs, BBC/NPR/Slashdot politics, Yahoo
-Finance, WSJ Markets, ScienceDaily, NASA, and several education outlets. Nothing is
-scraped beyond the feed itself, and no API key is needed.
+Finance, WSJ Markets, ScienceDaily, NASA, and several education outlets. Article
+bodies are not scraped; the only HTML fetch outside RSS is the optional
+`og:image`/`twitter:image` lookup described above, used when a feed item has no
+usable image. No API key is needed.
 
 ## Project structure
 
@@ -97,7 +108,7 @@ src/
     rss.ts           Fetches + parses RSS/RDF/Atom feeds into Article[], incl. image extraction
     summarizer.ts     Turns a raw RSS description into a ~60-second digest
     ogImage.ts        Best-effort og:image/twitter:image scrape, used as an image fallback
-    storage.ts        AsyncStorage helpers (preferences, saved articles, skipped ids, image cache)
+    storage.ts        AsyncStorage helpers (preferences, saved articles, skipped ids, pending undo, image cache)
     notifications.ts  Schedules the daily local notification
   hooks/useArticleImage.ts   Resolves an article's image: feed → cache → og:image scrape
   context/PreferencesContext.tsx   App-wide preferences state
@@ -150,9 +161,9 @@ feed refresh.
 - No offline caching of the feed yet — each open re-fetches from all selected
   sources (which does mean you're always seeing the latest available articles,
   sorted newest-first — there's no stale-cache layer to go out of date).
-- There's no per-story "undo" — skipping is a deliberate action, but if you skip
-  something by mistake, "Show skipped stories again" on the empty-deck screen
-  brings everything back at once rather than restoring just the last one.
+- Skip undo is last-in only (a stack of one) and expires after 5 minutes. There is
+  no undo for a save. The empty-deck "Show skipped stories again" control still
+  bulk-restores every dismissed story and clears any pending undo.
 
 ## If you upgrade react-native-reanimated
 
@@ -181,23 +192,76 @@ issues without blocking merges), and does a bundle sanity check
 (`expo export --platform web`) to catch Metro/bundling regressions the same way
 this project's been manually verified throughout development.
 
-`.github/workflows/cd.yml` is a scaffold for shipping OTA updates via
-[EAS Update](https://docs.expo.dev/eas-update/introduction/) on every push to
-`main`. It intentionally **no-ops** until you activate it, so it won't fail CI
-in the meantime. To activate it:
+### EAS Update (OTA) — scaffolded, not fully linked
 
-1. `npx eas login` (creates/uses an Expo account), then `npx eas init` from the
-   project root — this links the project and adds a `projectId` to `app.json`.
-2. Generate an access token at https://expo.dev/accounts/[account]/settings/access-tokens
+`eas.json` defines `preview` and `production` build profiles with update
+channels. `app.json` sets `runtimeVersion.policy` to `appVersion` so OTA
+updates stay compatible with a given native binary.
+
+What is **intentionally not** in the repo (needs an Expo account, and must not
+be invented):
+
+- `expo.extra.eas.projectId`
+- `expo.updates.url` (`https://u.expo.dev/<projectId>`)
+- the `expo-updates` package (installed by `eas update:configure`)
+
+`.github/workflows/cd.yml` publishes an OTA update via
+[EAS Update](https://docs.expo.dev/eas-update/introduction/) on every push to
+`main`. It **no-ops** until you activate it, so it won't fail CI in the
+meantime.
+
+#### Activating OTA CD
+
+These steps require an interactive Expo login — they cannot be completed in a
+headless clone without credentials:
+
+1. From the repo root, with EAS CLI:
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest init --non-interactive   # links the project; writes extra.eas.projectId
+   npx eas-cli@latest update:configure         # writes updates.url + installs expo-updates
+   ```
+   If `eas init` prompts because the project isn't linked yet, run it without
+   `--non-interactive` and accept the Expo project it creates for this slug
+   (`news-app`). Do not paste a made-up UUID into `app.json`.
+2. Commit the files `eas init` / `eas update:configure` changed (`app.json`
+   and `package.json` / lockfile if `expo-updates` was added).
+3. Generate an access token at
+   https://expo.dev/accounts/[account]/settings/access-tokens
    and add it as a GitHub Actions **secret** named `EXPO_TOKEN`
    (repo Settings → Secrets and variables → Actions → Secrets).
-3. Add a GitHub Actions **variable** named `EAS_PROJECT_LINKED` set to `true`
+4. Add a GitHub Actions **variable** named `EAS_PROJECT_LINKED` set to `true`
    (same page → Variables tab) — this is the switch that turns the workflow on.
 
-Until step 3, the `deploy` job is skipped on every run. This only publishes a
-JS/asset OTA update to whoever already has the app installed via EAS Update's
-runtime — it doesn't build or submit a new native binary to the App Store/Play
-Store (that's `eas build` / `eas submit`, a separate, heavier flow).
+Until step 4, the `deploy` job is skipped on every run. This only publishes a
+JS/asset OTA update to whoever already has a matching native build installed —
+it doesn't build or submit a new binary to the App Store/Play Store.
+
+#### Remaining store / native-build steps
+
+OTA updates are not a substitute for the first native binary. Before
+`eas build` / `eas submit` you still need to (locally, with your Apple/Google
+accounts):
+
+1. Set unique identifiers in `app.json` — `expo.ios.bundleIdentifier` and
+   `expo.android.package` (EAS will prompt if they're missing; pick values you
+   own, e.g. `com.yourname.brief`).
+2. Create an EAS project if you skipped `eas init` above.
+3. Run a store or internal build:
+   ```bash
+   npx eas-cli@latest build --platform ios --profile production
+   npx eas-cli@latest build --platform android --profile production
+   ```
+   (`npx eas-cli@latest build --platform all` is the same first credentials
+   pass in one command.)
+4. Submit with `npx eas-cli@latest submit --platform ios|android --profile production`
+   once the stores have your developer accounts, signing keys, and listing
+   metadata. `eas.json`'s `submit.production` block is an empty placeholder
+   until those credentials exist.
+
+Expo Go (`npx expo start`) remains the way to develop without a custom native
+build. EAS Update only applies to binaries produced by EAS Build (or a
+dev client), not to Expo Go.
 
 ### Production native builds (EAS Workflows)
 
@@ -211,8 +275,9 @@ project):
 npx eas-cli@latest workflow:run create-production-builds.yml
 ```
 
-The first credentials pass still has to happen locally: native signing keys
-aren't generated by the workflow file itself. On your machine, once:
+The first credentials pass still has to happen locally (see the store /
+native-build steps above): native signing keys aren't generated by the
+workflow file itself. On your machine, once:
 
 ```bash
 npx eas-cli@latest build --platform all
