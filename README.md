@@ -31,6 +31,11 @@ connection doesn't work, press `w` in the terminal to try the web preview instea
 or switch the dev server to tunnel mode (press `s` then choose "tunnel" in the
 Expo CLI, or run `npx expo start --tunnel`).
 
+The web preview is fine for checking layout and navigation. Most publisher RSS
+hosts do not send CORS headers, so the in-browser feed will miss many sources
+(a few, such as NASA APOD, may still load). Expo Go / a native build is the
+supported way to read the full feed.
+
 To run in a simulator instead of a physical phone (requires Xcode/Android Studio):
 ```bash
 npx expo start --ios       # iOS Simulator
