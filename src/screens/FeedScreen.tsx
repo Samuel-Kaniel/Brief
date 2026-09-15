@@ -213,7 +213,7 @@ export default function FeedScreen({ navigation }: Props) {
           </AnimatedPressable>
         </View>
       ) : (
-        <View style={styles.deckArea}>
+        <View style={[styles.deckArea, lastSkipped ? styles.deckAreaWithUndo : null]}>
           <SwipeCardStack
             articles={deck}
             onSwipeRight={handleSwipeRight}
@@ -243,7 +243,7 @@ export default function FeedScreen({ navigation }: Props) {
       )}
 
       {lastSkipped && (
-        <View style={[styles.undoBar, { bottom: Math.max(insets.bottom, 12) }]}>
+        <View pointerEvents="auto" style={[styles.undoBar, { marginBottom: Math.max(insets.bottom, 12) }]}>
           <Text style={styles.undoBarLabel}>Skipped</Text>
           <Text style={styles.undoBarDot}>·</Text>
           <AnimatedPressable onPress={handleUndo} hitSlop={8}>
@@ -303,10 +303,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deckArea: { flex: 1, paddingBottom: 24 },
+  deckAreaWithUndo: { paddingBottom: 8 },
   undoBar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
