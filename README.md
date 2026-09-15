@@ -13,9 +13,8 @@ Finance, Science, Health, and Education.
 
 You don't need Xcode or Android Studio — just the free **Expo Go** app.
 
-1. Install dependencies (only needed once):
+1. Install dependencies (only needed once) from the repo root:
    ```bash
-   cd news-app
    npm install
    ```
 2. Start the dev server:
@@ -84,8 +83,10 @@ image stays clear and just blends into the card below it.
 News comes straight from each publisher's public RSS feed (see the full list in
 `src/data/feeds.ts`) — Ars Technica, MIT Technology Review, arXiv (cs.LG/cs.CV/cs.CL),
 Netflix/AWS/HighScalability engineering blogs, BBC/NPR/Slashdot politics, Yahoo
-Finance, WSJ Markets, ScienceDaily, NASA, and several education outlets. Nothing is
-scraped beyond the feed itself, and no API key is needed.
+Finance, WSJ Markets, ScienceDaily, NASA, and several education outlets. Article
+bodies are not scraped; the only HTML fetch outside RSS is the optional
+`og:image`/`twitter:image` lookup described above, used when a feed item has no
+usable image. No API key is needed.
 
 ## Project structure
 
@@ -181,21 +182,71 @@ issues without blocking merges), and does a bundle sanity check
 (`expo export --platform web`) to catch Metro/bundling regressions the same way
 this project's been manually verified throughout development.
 
-`.github/workflows/cd.yml` is a scaffold for shipping OTA updates via
-[EAS Update](https://docs.expo.dev/eas-update/introduction/) on every push to
-`main`. It intentionally **no-ops** until you activate it, so it won't fail CI
-in the meantime. To activate it:
+### EAS Update (OTA) — scaffolded, not fully linked
 
-1. `npx eas login` (creates/uses an Expo account), then `npx eas init` from the
-   project root — this links the project and adds a `projectId` to `app.json`.
-2. Generate an access token at https://expo.dev/accounts/[account]/settings/access-tokens
+`eas.json` defines `preview` and `production` build profiles with update
+channels. `app.json` sets `runtimeVersion.policy` to `appVersion` so OTA
+updates stay compatible with a given native binary.
+
+What is **intentionally not** in the repo (needs an Expo account, and must not
+be invented):
+
+- `expo.extra.eas.projectId`
+- `expo.updates.url` (`https://u.expo.dev/<projectId>`)
+- the `expo-updates` package (installed by `eas update:configure`)
+
+`.github/workflows/cd.yml` publishes an OTA update via
+[EAS Update](https://docs.expo.dev/eas-update/introduction/) on every push to
+`main`. It **no-ops** until you activate it, so it won't fail CI in the
+meantime.
+
+#### Activating OTA CD
+
+These steps require an interactive Expo login — they cannot be completed in a
+headless clone without credentials:
+
+1. From the repo root, with EAS CLI:
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest init --non-interactive   # links the project; writes extra.eas.projectId
+   npx eas-cli@latest update:configure         # writes updates.url + installs expo-updates
+   ```
+   If `eas init` prompts because the project isn't linked yet, run it without
+   `--non-interactive` and accept the Expo project it creates for this slug
+   (`news-app`). Do not paste a made-up UUID into `app.json`.
+2. Commit the files `eas init` / `eas update:configure` changed (`app.json`
+   and `package.json` / lockfile if `expo-updates` was added).
+3. Generate an access token at
+   https://expo.dev/accounts/[account]/settings/access-tokens
    and add it as a GitHub Actions **secret** named `EXPO_TOKEN`
    (repo Settings → Secrets and variables → Actions → Secrets).
-3. Add a GitHub Actions **variable** named `EAS_PROJECT_LINKED` set to `true`
+4. Add a GitHub Actions **variable** named `EAS_PROJECT_LINKED` set to `true`
    (same page → Variables tab) — this is the switch that turns the workflow on.
 
-Until step 3, the `deploy` job is skipped on every run. This only publishes a
-JS/asset OTA update to whoever already has the app installed via EAS Update's
-runtime — it doesn't build or submit a new native binary to the App Store/Play
-Store (that's `eas build` / `eas submit`, a separate, heavier flow not wired up
-here).
+Until step 4, the `deploy` job is skipped on every run. This only publishes a
+JS/asset OTA update to whoever already has a matching native build installed —
+it doesn't build or submit a new binary to the App Store/Play Store.
+
+#### Remaining store / native-build steps
+
+OTA updates are not a substitute for the first native binary. Before
+`eas build` / `eas submit` you still need to (locally, with your Apple/Google
+accounts):
+
+1. Set unique identifiers in `app.json` — `expo.ios.bundleIdentifier` and
+   `expo.android.package` (EAS will prompt if they're missing; pick values you
+   own, e.g. `com.yourname.brief`).
+2. Create an EAS project if you skipped `eas init` above.
+3. Run a store or internal build:
+   ```bash
+   npx eas-cli@latest build --platform ios --profile production
+   npx eas-cli@latest build --platform android --profile production
+   ```
+4. Submit with `npx eas-cli@latest submit --platform ios|android --profile production`
+   once the stores have your developer accounts, signing keys, and listing
+   metadata. `eas.json`'s `submit.production` block is an empty placeholder
+   until those credentials exist.
+
+Expo Go (`npx expo start`) remains the way to develop without a custom native
+build. EAS Update only applies to binaries produced by EAS Build (or a
+dev client), not to Expo Go.

@@ -5,6 +5,7 @@ import { fetchArticlesForCategories } from './rss';
 import { FEED_SOURCES } from '../data/feeds';
 
 const DAILY_NOTIFICATION_ID = 'news-app-daily-digest';
+const DAILY_CHANNEL_ID = 'daily-digest';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -35,22 +36,46 @@ async function buildDigestBody(categories: CategoryId[]): Promise<string> {
   }
 }
 
-export async function scheduleDailyDigest(prefs: UserPreferences): Promise<void> {
+let lastDigestBody: string | null = null;
+let lastDigestCategoriesKey = '';
+let scheduleEpoch = 0;
+
+function categoriesKey(categories: CategoryId[]): string {
+  return [...categories].sort().join(',');
+}
+
+export async function scheduleDailyDigest(
+  prefs: UserPreferences,
+  options: { refreshBody?: boolean } = {}
+): Promise<void> {
+  const epoch = ++scheduleEpoch;
+
   await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIFICATION_ID).catch(() => {});
 
   if (!prefs.notificationsEnabled || prefs.categories.length === 0) return;
 
   const granted = await requestNotificationPermission();
   if (!granted) return;
+  if (epoch !== scheduleEpoch) return;
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('daily-digest', {
+    await Notifications.setNotificationChannelAsync(DAILY_CHANNEL_ID, {
       name: 'Daily digest',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
 
-  const body = await buildDigestBody(prefs.categories);
+  const key = categoriesKey(prefs.categories);
+  const shouldRefreshBody =
+    options.refreshBody === true || lastDigestBody == null || lastDigestCategoriesKey !== key;
+
+  const body =
+    shouldRefreshBody || lastDigestBody == null
+      ? await buildDigestBody(prefs.categories)
+      : lastDigestBody;
+  if (epoch !== scheduleEpoch) return;
+  lastDigestBody = body;
+  lastDigestCategoriesKey = key;
 
   await Notifications.scheduleNotificationAsync({
     identifier: DAILY_NOTIFICATION_ID,
@@ -62,10 +87,14 @@ export async function scheduleDailyDigest(prefs: UserPreferences): Promise<void>
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: prefs.notificationHour,
       minute: prefs.notificationMinute,
+      ...(Platform.OS === 'android' ? { channelId: DAILY_CHANNEL_ID } : {}),
     },
   });
 }
 
 export async function cancelDailyDigest(): Promise<void> {
+  scheduleEpoch += 1;
+  lastDigestBody = null;
+  lastDigestCategoriesKey = '';
   await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIFICATION_ID).catch(() => {});
 }

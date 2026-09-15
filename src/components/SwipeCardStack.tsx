@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -34,13 +34,42 @@ interface Props {
 }
 
 export default function SwipeCardStack({ articles, onSwipeRight, onSwipeLeft, onTapOpen, renderEmpty }: Props) {
-  const [index, setIndex] = useState(0);
+  // FeedScreen also filters saved/skipped IDs out of `articles`. Advancing a
+  // numeric index *and* resetting it when that filtered array changes can skip
+  // a card for a frame (index=1 against a list that already dropped the
+  // swiped item). Track exiting IDs instead and always show remaining[0].
+  const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    setIndex(0);
+    setExitingIds((prev) => {
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (articles.some((article) => article.id === id)) {
+          next.add(id);
+        } else {
+          changed = true;
+        }
+      }
+      if (!changed && next.size === prev.size) return prev;
+      return next;
+    });
   }, [articles]);
 
-  const visible = articles.slice(index, index + STACK_VISIBLE);
+  const remaining = useMemo(
+    () => articles.filter((article) => !exitingIds.has(article.id)),
+    [articles, exitingIds]
+  );
+  const visible = remaining.slice(0, STACK_VISIBLE);
+
+  const dismiss = (article: Article, handler: (article: Article) => void) => {
+    setExitingIds((prev) => {
+      const next = new Set(prev);
+      next.add(article.id);
+      return next;
+    });
+    handler(article);
+  };
 
   if (visible.length === 0) {
     return <View style={styles.container}>{renderEmpty()}</View>;
@@ -56,14 +85,8 @@ export default function SwipeCardStack({ articles, onSwipeRight, onSwipeLeft, on
             <TopCard
               key={article.id}
               article={article}
-              onSwipeRight={() => {
-                onSwipeRight(article);
-                setIndex((idx) => idx + 1);
-              }}
-              onSwipeLeft={() => {
-                onSwipeLeft(article);
-                setIndex((idx) => idx + 1);
-              }}
+              onSwipeRight={() => dismiss(article, onSwipeRight)}
+              onSwipeLeft={() => dismiss(article, onSwipeLeft)}
               onTapOpen={() => onTapOpen(article)}
             />
           ) : (
