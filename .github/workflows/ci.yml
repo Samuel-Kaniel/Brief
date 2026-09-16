@@ -26,6 +26,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Unit tests
+        run: npm test
+
       - name: Verify Expo project health
         run: npx expo-doctor
         continue-on-error: true # advisory only — flags issues without blocking merges

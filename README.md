@@ -16,9 +16,9 @@ Finance, Science, Health, and Education.
 Walk through the app in this order:
 
 1. **Onboarding** — first launch, pick the topics you want and a daily digest time, then tap **Start reading**. This is stored on-device, so it only runs once.
-2. **Feed** — swipe **right** to save a story, **left** to skip it. Tap a card (without dragging) to open the source article. After a skip, a **Skipped · Undo** bar appears for a few seconds if you change your mind.
-3. **Saved** — open the bookmark icon in the feed header to see everything you swiped right on. Tap a row to open it, or remove it from the list.
-4. **Settings** — open the gear icon in the feed header to change topics or the digest time anytime.
+2. **Daily / Feed** — home opens on **Daily**, a ranked pack of today’s stories in your topics (see [`docs/daily-lane.md`](docs/daily-lane.md)). Switch to **Feed** to swipe **right** to save, **left** to skip. Tap a Daily row (or a Feed card) to open the source article. Bookmark on Daily saves without swiping. After a Feed skip, a **Skipped · Undo** bar appears for a few seconds if you change your mind.
+3. **Saved** — open the bookmark icon in the header to see everything you saved. Tap a row to open it, or remove it from the list.
+4. **Settings** — open the gear icon in the header to change topics or the digest time anytime.
 
 Use **Expo Go** (or a native build) for the full feed. The web preview is CORS-limited: most publisher RSS hosts omit CORS headers, so many sources will not load in the browser.
 
@@ -61,6 +61,12 @@ npx expo start --android   # Android Emulator
 
 - **Onboarding** — first launch asks you to pick topics and a daily digest time.
   Saved to on-device storage (`AsyncStorage`), so it only runs once.
+- **Daily** — a ranked list of today’s pack (`rankDaily` in `src/services/daily.ts`):
+  stories from the last ~24 hours in your selected topics, ordered by source
+  weight × recency, capped at 24. Same on-device RSS as Feed; a future
+  `GET /feeds/daily` can replace the local ranker (see
+  [`docs/daily-lane.md`](docs/daily-lane.md)). Empty if nothing recent. Toggle
+  **Daily | Feed** in the home header.
 - **Feed** — a gesture-driven card deck (`SwipeCardStack`, built on
   `react-native-gesture-handler` + `react-native-reanimated`). Each card renders an
   image, headline, source, timestamp, and a ~60-second summary. Swiping right saves
@@ -121,14 +127,15 @@ src/
   data/feeds.ts      Category list + RSS feed source URLs
   services/
     rss.ts           Fetches + parses RSS/RDF/Atom feeds into Article[], incl. image extraction
+    daily.ts         Daily window + rank v1 (`rankDaily`) + `loadHomeLanes` / `fetchDailyPack`
     summarizer.ts     Turns a raw RSS description into a ~60-second digest
     ogImage.ts        Best-effort og:image/twitter:image scrape, used as an image fallback
     storage.ts        AsyncStorage helpers (preferences, saved articles, skipped ids, pending undo, image cache)
     notifications.ts  Schedules the daily local notification
   hooks/useArticleImage.ts   Resolves an article's image: feed → cache → og:image scrape
   context/PreferencesContext.tsx   App-wide preferences state
-  screens/           Onboarding, Feed, Saved, Settings
-  components/        NewsCard, ArticleImage, SwipeCardStack, TimePicker
+  screens/           Onboarding, Feed (Daily | Feed lanes), Saved, Settings
+  components/        NewsCard, ArticleImage, SwipeCardStack, DailyPackList, LaneToggle, TimePicker
   navigation/        Stack navigator (Onboarding -> Feed <-> Settings/Saved)
 ```
 

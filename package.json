@@ -29,13 +29,15 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "tsx": "^4.20.5",
     "typescript": "~5.9.2"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "npx tsx src/services/daily.test.ts"
   },
   "private": true
 }
