@@ -1,0 +1,12 @@
+{
+  "duration": 20,
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#hook-line-1", "bySec": 0.8 },
+    { "kind": "appearsBy", "selector": "#hook-line-2", "bySec": 1.1 },
+    { "kind": "before", "a": "#hook-line-1", "b": "#reveal-phone" },
+    { "kind": "appearsBy", "selector": "#reveal-phone", "bySec": 3.2 },
+    { "kind": "appearsBy", "selector": "#start-reading", "bySec": 6.4 },
+    { "kind": "appearsBy", "selector": "#outro-name", "bySec": 18.1 },
+    { "kind": "keepsMoving", "maxStaticSec": 3.2 }
+  ]
+}
