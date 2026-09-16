@@ -142,28 +142,128 @@
         text-align: center;
       }
 
+      .device {
+        position: relative;
+        width: 700px;
+        height: 1360px;
+        flex-shrink: 0;
+      }
+      .hw-btn {
+        position: absolute;
+        width: 5px;
+        background: linear-gradient(90deg, #5a5d66 0%, #2a2c32 40%, #111216 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        z-index: 2;
+      }
+      .hw-btn.silent {
+        left: 0;
+        top: 196px;
+        height: 34px;
+        border-radius: 2px 0 0 2px;
+      }
+      .hw-btn.vol-up {
+        left: 0;
+        top: 268px;
+        height: 72px;
+        border-radius: 2px 0 0 2px;
+      }
+      .hw-btn.vol-down {
+        left: 0;
+        top: 350px;
+        height: 72px;
+        border-radius: 2px 0 0 2px;
+      }
+      .hw-btn.power {
+        right: 0;
+        top: 292px;
+        height: 108px;
+        border-radius: 0 2px 2px 0;
+        background: linear-gradient(270deg, #5a5d66 0%, #2a2c32 40%, #111216 100%);
+      }
+      .device-frame {
+        position: absolute;
+        inset: 0 8px;
+        border-radius: 70px;
+        padding: 11px;
+        background: linear-gradient(165deg, #6d717a 0%, #2c2f36 12%, #121418 42%, #0a0b0d 70%, #3a3d45 100%);
+        box-shadow:
+          0 32px 90px rgba(0, 0, 0, 0.58),
+          0 8px 24px rgba(0, 0, 0, 0.35),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+      .device-frame::before {
+        content: "";
+        position: absolute;
+        inset: 3px;
+        border-radius: 67px;
+        pointer-events: none;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+          inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      }
       .phone {
         position: relative;
-        width: 680px;
-        height: 1180px;
-        border-radius: 52px;
+        width: 100%;
+        height: 100%;
+        border-radius: 58px;
         background: #0f1115;
-        border: 3px solid #2a3140;
-        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .hw-island {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        width: 128px;
+        height: 34px;
+        margin-left: -64px;
+        background: #050506;
+        border-radius: 20px;
+        z-index: 6;
+        box-shadow: 0 0 0 3px #0f1115;
+      }
+      .hw-island::after {
+        content: "";
+        position: absolute;
+        right: 14px;
+        top: 10px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 32%, #2a5a88, #0a1424 68%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+      }
+      .hw-home {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        width: 148px;
+        height: 5px;
+        margin-left: -74px;
+        background: rgba(255, 255, 255, 0.38);
+        border-radius: 999px;
+        z-index: 6;
       }
       .phone-status {
-        height: 42px;
+        height: 54px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 28px 0;
+        padding: 16px 28px 0;
         font-size: 15px;
         font-weight: 600;
         color: #e5e7eb;
         flex-shrink: 0;
+      }
+      .status-icons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-icons svg {
+        display: block;
       }
       .phone-header {
         display: flex;
@@ -370,6 +470,7 @@
       .onboard-footer {
         margin-top: auto;
         padding-top: 20px;
+        padding-bottom: 10px;
       }
       .cta {
         width: 100%;
@@ -458,7 +559,7 @@
       }
 
       .undo-bar {
-        margin: 0 16px 16px;
+        margin: 0 16px 22px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -547,8 +648,22 @@
       <section id="scene-reveal" class="clip" data-start="2.35" data-duration="3.85" data-track-index="1">
         <div id="reveal-inner" class="scene-inner">
           <div id="reveal-caption" class="caption">Swipeable news. Sixty-second summaries.</div>
-          <div id="reveal-phone" class="phone" data-layout-allow-overflow="true">
-            <div class="phone-status"><span>9:00</span><span></span></div>
+          <div id="reveal-phone" class="device" data-layout-allow-overflow="true">
+            <div class="hw-btn silent" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-up" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-down" data-layout-ignore="true"></div>
+            <div class="hw-btn power" data-layout-ignore="true"></div>
+            <div class="device-frame">
+            <div class="phone">
+            <div class="hw-island" data-layout-ignore="true"></div>
+            <div class="phone-status">
+              <span>9:41</span>
+              <span class="status-icons" data-layout-ignore="true">
+                <svg width="17" height="12" viewBox="0 0 17 12" fill="#e5e7eb"><rect x="0" y="7" width="3" height="5" rx="0.6"/><rect x="4.5" y="5" width="3" height="7" rx="0.6"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.6"/><rect x="13.5" y="0" width="3" height="12" rx="0.6"/></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#e5e7eb" stroke-width="1.5"><path d="M1 8.2a8.2 8.2 0 0 1 14 0"/><path d="M3.6 9.6a4.7 4.7 0 0 1 8.8 0"/><circle cx="8" cy="11" r="1" fill="#e5e7eb" stroke="none"/></svg>
+                <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0.6" y="1" width="22" height="10" rx="2.4" fill="none" stroke="#e5e7eb" stroke-width="1.2"/><rect x="2.2" y="2.6" width="17.4" height="6.8" rx="1.2" fill="#e5e7eb"/><rect x="23.4" y="4" width="2.2" height="4" rx="0.8" fill="#e5e7eb"/></svg>
+              </span>
+            </div>
             <div class="phone-header">
               <div class="phone-title">Brief</div>
               <div class="header-actions">
@@ -589,6 +704,9 @@
                 </div>
               </article>
             </div>
+            <div class="hw-home" data-layout-ignore="true"></div>
+            </div>
+            </div>
           </div>
         </div>
       </section>
@@ -596,8 +714,22 @@
       <section id="scene-topics" class="clip" data-start="5.85" data-duration="4.35" data-track-index="2">
         <div id="topics-inner" class="scene-inner">
           <div id="topics-caption" class="caption">Pick the topics you actually want.</div>
-          <div id="topics-phone" class="phone">
-            <div class="phone-status"><span>9:00</span><span></span></div>
+          <div id="topics-phone" class="device">
+            <div class="hw-btn silent" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-up" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-down" data-layout-ignore="true"></div>
+            <div class="hw-btn power" data-layout-ignore="true"></div>
+            <div class="device-frame">
+            <div class="phone">
+            <div class="hw-island" data-layout-ignore="true"></div>
+            <div class="phone-status">
+              <span>9:41</span>
+              <span class="status-icons" data-layout-ignore="true">
+                <svg width="17" height="12" viewBox="0 0 17 12" fill="#e5e7eb"><rect x="0" y="7" width="3" height="5" rx="0.6"/><rect x="4.5" y="5" width="3" height="7" rx="0.6"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.6"/><rect x="13.5" y="0" width="3" height="12" rx="0.6"/></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#e5e7eb" stroke-width="1.5"><path d="M1 8.2a8.2 8.2 0 0 1 14 0"/><path d="M3.6 9.6a4.7 4.7 0 0 1 8.8 0"/><circle cx="8" cy="11" r="1" fill="#e5e7eb" stroke="none"/></svg>
+                <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0.6" y="1" width="22" height="10" rx="2.4" fill="none" stroke="#e5e7eb" stroke-width="1.2"/><rect x="2.2" y="2.6" width="17.4" height="6.8" rx="1.2" fill="#e5e7eb"/><rect x="23.4" y="4" width="2.2" height="4" rx="0.8" fill="#e5e7eb"/></svg>
+              </span>
+            </div>
             <div class="onboard">
               <div class="onboard-title">What do you want to follow?</div>
               <div class="onboard-sub">Pick as many as you like. You can change these anytime.</div>
@@ -615,6 +747,9 @@
                 <div id="start-reading" class="cta">Start reading</div>
               </div>
             </div>
+            <div class="hw-home" data-layout-ignore="true"></div>
+            </div>
+            </div>
           </div>
         </div>
       </section>
@@ -622,8 +757,22 @@
       <section id="scene-swipe" class="clip" data-start="9.85" data-duration="4.85" data-track-index="3">
         <div id="swipe-inner" class="scene-inner">
           <div id="swipe-caption" class="caption">Right to save. Left to skip.</div>
-          <div id="swipe-phone" class="phone" data-layout-allow-overflow="true">
-            <div class="phone-status"><span>9:00</span><span></span></div>
+          <div id="swipe-phone" class="device" data-layout-allow-overflow="true">
+            <div class="hw-btn silent" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-up" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-down" data-layout-ignore="true"></div>
+            <div class="hw-btn power" data-layout-ignore="true"></div>
+            <div class="device-frame">
+            <div class="phone">
+            <div class="hw-island" data-layout-ignore="true"></div>
+            <div class="phone-status">
+              <span>9:41</span>
+              <span class="status-icons" data-layout-ignore="true">
+                <svg width="17" height="12" viewBox="0 0 17 12" fill="#e5e7eb"><rect x="0" y="7" width="3" height="5" rx="0.6"/><rect x="4.5" y="5" width="3" height="7" rx="0.6"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.6"/><rect x="13.5" y="0" width="3" height="12" rx="0.6"/></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#e5e7eb" stroke-width="1.5"><path d="M1 8.2a8.2 8.2 0 0 1 14 0"/><path d="M3.6 9.6a4.7 4.7 0 0 1 8.8 0"/><circle cx="8" cy="11" r="1" fill="#e5e7eb" stroke="none"/></svg>
+                <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0.6" y="1" width="22" height="10" rx="2.4" fill="none" stroke="#e5e7eb" stroke-width="1.2"/><rect x="2.2" y="2.6" width="17.4" height="6.8" rx="1.2" fill="#e5e7eb"/><rect x="23.4" y="4" width="2.2" height="4" rx="0.8" fill="#e5e7eb"/></svg>
+              </span>
+            </div>
             <div class="phone-header">
               <div class="phone-title">Brief</div>
               <div class="header-actions">
@@ -697,6 +846,9 @@
               <span class="undo-dot">·</span>
               <span class="undo-action">Undo</span>
             </div>
+            <div class="hw-home" data-layout-ignore="true"></div>
+            </div>
+            </div>
           </div>
         </div>
       </section>
@@ -704,8 +856,22 @@
       <section id="scene-digest" class="clip" data-start="14.35" data-duration="3.35" data-track-index="4">
         <div id="digest-inner" class="scene-inner">
           <div id="digest-caption" class="caption">One digest a day. Your topics.</div>
-          <div id="digest-phone" class="phone">
-            <div class="phone-status"><span>8:00</span><span></span></div>
+          <div id="digest-phone" class="device">
+            <div class="hw-btn silent" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-up" data-layout-ignore="true"></div>
+            <div class="hw-btn vol-down" data-layout-ignore="true"></div>
+            <div class="hw-btn power" data-layout-ignore="true"></div>
+            <div class="device-frame">
+            <div class="phone">
+            <div class="hw-island" data-layout-ignore="true"></div>
+            <div class="phone-status">
+              <span>8:00</span>
+              <span class="status-icons" data-layout-ignore="true">
+                <svg width="17" height="12" viewBox="0 0 17 12" fill="#e5e7eb"><rect x="0" y="7" width="3" height="5" rx="0.6"/><rect x="4.5" y="5" width="3" height="7" rx="0.6"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.6"/><rect x="13.5" y="0" width="3" height="12" rx="0.6"/></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#e5e7eb" stroke-width="1.5"><path d="M1 8.2a8.2 8.2 0 0 1 14 0"/><path d="M3.6 9.6a4.7 4.7 0 0 1 8.8 0"/><circle cx="8" cy="11" r="1" fill="#e5e7eb" stroke="none"/></svg>
+                <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0.6" y="1" width="22" height="10" rx="2.4" fill="none" stroke="#e5e7eb" stroke-width="1.2"/><rect x="2.2" y="2.6" width="17.4" height="6.8" rx="1.2" fill="#e5e7eb"/><rect x="23.4" y="4" width="2.2" height="4" rx="0.8" fill="#e5e7eb"/></svg>
+              </span>
+            </div>
             <div class="saved-header">
               <div class="back-link">‹ Back</div>
               <div class="saved-title">Saved</div>
@@ -735,6 +901,9 @@
                 <div class="banner-time">8:00 AM</div>
               </div>
               <div class="banner-body">Medicare’s GLP-1 catch  •  NASA’s picture of the cosmos</div>
+            </div>
+            <div class="hw-home" data-layout-ignore="true"></div>
+            </div>
             </div>
           </div>
         </div>

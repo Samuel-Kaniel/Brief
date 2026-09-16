@@ -11,7 +11,7 @@ Finance, Science, Health, and Education.
 
 <p align="center">
   <a href="docs/brief-demo.mp4">
-    <img src="docs/brief-demo.jpg" alt="Brief demo poster: swipeable news card with photo, Health tag, headline, and sixty-second summary" width="280" />
+    <img src="docs/brief-demo.jpg" alt="Brief demo poster: Health news card inside an iPhone frame" width="280" />
   </a>
 </p>
 
