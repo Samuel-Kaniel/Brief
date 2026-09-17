@@ -36,7 +36,8 @@ You don't need Xcode or Android Studio — just the free **Expo Go** app.
    ```bash
    npx expo start
    ```
-3. Install **Expo Go** on your phone (App Store / Google Play).
+3. Install **Expo Go** on your phone (App Store / Google Play). This project
+   targets **Expo SDK 57**, so Expo Go must also be SDK 57.
 4. Scan the QR code printed in the terminal with your phone's camera (iOS) or the
    Expo Go app (Android). The app opens on your device, connected live to your
    computer — edits you make to the code hot-reload on the phone.
@@ -196,9 +197,9 @@ whatever Expo Go build you're running, or the app crashes on launch with
 `Exception in HostFunction` inside `NativeWorklets`, before any of your code runs.
 This project pins it explicitly in `package.json`:
 ```json
-"react-native-worklets": "0.5.1"
+"react-native-worklets": "0.10.1"
 ```
-That's the exact version listed for SDK 54 in `expo/bundledNativeModules.json` —
+That's the exact version listed for SDK 57 in `expo/bundledNativeModules.json` —
 without the pin, npm resolves `react-native-worklets` to whatever the newest
 version satisfying `react-native-reanimated`'s internal range is (which drifts
 ahead of what Expo Go actually ships). If you bump `expo`/`react-native-reanimated`,
@@ -208,11 +209,12 @@ pin to match. Also note `babel.config.js` must list `react-native-worklets/plugi
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs on every push/PR to `main`: installs deps,
-type-checks (`tsc --noEmit`), runs `expo-doctor` (advisory — flags dependency
-issues without blocking merges), and does a bundle sanity check
-(`expo export --platform web`) to catch Metro/bundling regressions the same way
-this project's been manually verified throughout development.
+`.github/workflows/ci.yml` runs on every push/PR to `main` (Node 22, required by
+SDK 57): installs deps, type-checks (`tsc --noEmit`), runs unit tests
+(`npm test`), runs `expo-doctor` (advisory — flags dependency issues without
+blocking merges), and does a bundle sanity check (`expo export --platform web`)
+to catch Metro/bundling regressions the same way this project's been manually
+verified throughout development.
 
 ### EAS Update (OTA) — scaffolded, not fully linked
 

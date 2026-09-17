@@ -198,7 +198,7 @@ function TopCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  cardSlot: { ...StyleSheet.absoluteFillObject, padding: 16 },
+  cardSlot: { ...StyleSheet.absoluteFill, padding: 16 },
   stackedInner: { flex: 1 },
   overlayBadge: {
     position: 'absolute',
