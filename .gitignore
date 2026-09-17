@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Hyperframes local caches / full-track audio analysis
+brag-output/composition/assets/music/audio-data.json
+brag-output/composition/.hyperframes/
