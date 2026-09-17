@@ -5,9 +5,11 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import SwipeCardStack from '../components/SwipeCardStack';
 import AnimatedPressable from '../components/AnimatedPressable';
+import DailyPackList from '../components/DailyPackList';
+import LaneToggle, { NewsLane } from '../components/LaneToggle';
 import { Article } from '../types';
 import { FEED_SOURCES } from '../data/feeds';
-import { fetchArticlesForCategories } from '../services/rss';
+import { loadHomeLanes } from '../services/daily';
 import {
   clearPendingUndo,
   loadPendingUndo,
@@ -17,6 +19,7 @@ import {
   markSkipped,
   resetSkipped,
   savePendingUndo,
+  unmarkSaved,
   unmarkSkipped,
 } from '../services/storage';
 import { usePreferences } from '../context/PreferencesContext';
@@ -29,12 +32,15 @@ const UNDO_BAR_MS = 4000;
 export default function FeedScreen({ navigation }: Props) {
   const { preferences } = usePreferences();
   const insets = useSafeAreaInsets();
+  const [lane, setLane] = useState<NewsLane>('daily');
   const [articles, setArticles] = useState<Article[]>([]);
+  const [dailyArticles, setDailyArticles] = useState<Article[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [lastSkipped, setLastSkipped] = useState<Article | null>(null);
   const [restoredFront, setRestoredFront] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -72,37 +78,45 @@ export default function FeedScreen({ navigation }: Props) {
     };
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     setRestoredFront(null);
     if (preferences.categories.length === 0) {
       setArticles([]);
+      setDailyArticles([]);
       setLoading(false);
+      setRefreshing(false);
       return;
     }
-    setLoading(true);
+    if (opts?.silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const [{ articles: fetched, failedSources }, saved, skipped, pending] = await Promise.all([
-        fetchArticlesForCategories(FEED_SOURCES, preferences.categories),
+      const [lanes, saved, skipped, pending] = await Promise.all([
+        loadHomeLanes(FEED_SOURCES, preferences),
         loadSavedIds(),
         loadSkippedIds(),
         loadPendingUndo(),
       ]);
       setSavedIds(saved);
       setSkippedIds(skipped);
-      setArticles(fetched);
+      setArticles(lanes.feedArticles);
+      setDailyArticles(lanes.dailyArticles);
       if (pending) {
         presentUndoBar(pending.article);
       } else {
         hideUndoBar();
       }
-      if (fetched.length === 0 && failedSources.length > 0) {
+      if (lanes.feedArticles.length === 0 && lanes.failedSources.length > 0) {
         setError('Could not reach any news sources. Try refreshing.');
       }
     } catch (err) {
       setError('Something went wrong loading your feed. Try refreshing.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriesKey, presentUndoBar, hideUndoBar]);
@@ -126,6 +140,16 @@ export default function FeedScreen({ navigation }: Props) {
     const updated = await markSaved(article);
     setSavedIds(new Set(Object.keys(updated)));
   }, []);
+
+  const handleToggleSave = useCallback(async (article: Article) => {
+    if (savedIds.has(article.id)) {
+      const updated = await unmarkSaved(article.id);
+      setSavedIds(new Set(Object.keys(updated)));
+      return;
+    }
+    const updated = await markSaved(article);
+    setSavedIds(new Set(Object.keys(updated)));
+  }, [savedIds]);
 
   const handleSwipeLeft = useCallback(
     async (article: Article) => {
@@ -183,7 +207,7 @@ export default function FeedScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.headerBar} edges={['top']}>
-        <Text style={styles.headerTitle}>Brief</Text>
+        <LaneToggle value={lane} onChange={setLane} />
         <View style={styles.headerActions}>
           <AnimatedPressable style={styles.headerIconButton} onPress={() => load()} hitSlop={8}>
             <Feather name="refresh-cw" size={18} color="#93c5fd" />
@@ -205,12 +229,38 @@ export default function FeedScreen({ navigation }: Props) {
         </View>
       </SafeAreaView>
 
-      {error && deck.length === 0 ? (
+      {error && (lane === 'daily' ? dailyArticles.length === 0 : deck.length === 0) ? (
         <View style={styles.centered}>
           <Text style={styles.emptyBody}>{error}</Text>
           <AnimatedPressable style={styles.actionButton} onPress={() => load()}>
             <Text style={styles.actionButtonText}>Retry</Text>
           </AnimatedPressable>
+        </View>
+      ) : lane === 'daily' ? (
+        <View style={styles.deckArea}>
+          <DailyPackList
+            articles={dailyArticles}
+            savedIds={savedIds}
+            refreshing={refreshing}
+            onRefresh={() => load({ silent: true })}
+            onOpen={handleTapOpen}
+            onToggleSave={handleToggleSave}
+            renderEmpty={() => (
+              <View style={styles.centered}>
+                <Text style={styles.emptyTitle}>Nothing from today yet</Text>
+                <Text style={styles.emptyBody}>
+                  No stories in your topics from the last 24 hours. Check back later, or switch to
+                  Feed for the full deck.
+                </Text>
+                <AnimatedPressable style={styles.actionButton} onPress={() => load()}>
+                  <Text style={styles.actionButtonText}>Check for new stories</Text>
+                </AnimatedPressable>
+                <AnimatedPressable style={styles.secondaryButton} onPress={() => setLane('feed')}>
+                  <Text style={styles.secondaryButtonText}>Browse the full Feed</Text>
+                </AnimatedPressable>
+              </View>
+            )}
+          />
         </View>
       ) : (
         <View style={[styles.deckArea, lastSkipped ? styles.deckAreaWithUndo : null]}>
@@ -242,7 +292,7 @@ export default function FeedScreen({ navigation }: Props) {
         </View>
       )}
 
-      {lastSkipped && (
+      {lane === 'feed' && lastSkipped && (
         <View pointerEvents="auto" style={[styles.undoBar, { marginBottom: Math.max(insets.bottom, 12) }]}>
           <Text style={styles.undoBarLabel}>Skipped</Text>
           <Text style={styles.undoBarDot}>·</Text>
@@ -292,7 +342,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   headerActions: { flexDirection: 'row', gap: 8 },
   headerIconButton: {
     width: 36,

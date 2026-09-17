@@ -24,9 +24,9 @@ Finance, Science, Health, and Education.
 Walk through the app in this order:
 
 1. **Onboarding** — first launch, pick the topics you want and a daily digest time, then tap **Start reading**. This is stored on-device, so it only runs once.
-2. **Feed** — swipe **right** to save a story, **left** to skip it. Tap a card (without dragging) to open the source article. After a skip, a **Skipped · Undo** bar appears for a few seconds if you change your mind.
-3. **Saved** — open the bookmark icon in the feed header to see everything you swiped right on. Tap a row to open it, or remove it from the list.
-4. **Settings** — open the gear icon in the feed header to change topics or the digest time anytime.
+2. **Daily / Feed** — home opens on **Daily**, a ranked pack of today’s stories in your topics (see [`docs/daily-lane.md`](docs/daily-lane.md)). Switch to **Feed** to swipe **right** to save, **left** to skip. Tap a Daily row (or a Feed card) to open the source article. Bookmark on Daily saves without swiping. After a Feed skip, a **Skipped · Undo** bar appears for a few seconds if you change your mind.
+3. **Saved** — open the bookmark icon in the header to see everything you saved. Tap a row to open it, or remove it from the list.
+4. **Settings** — open the gear icon in the header to change topics or the digest time anytime.
 
 Use **Expo Go** (or a native build) for the full feed. The web preview is CORS-limited: most publisher RSS hosts omit CORS headers, so many sources will not load in the browser.
 
@@ -42,7 +42,8 @@ You don't need Xcode or Android Studio — just the free **Expo Go** app.
    ```bash
    npx expo start
    ```
-3. Install **Expo Go** on your phone (App Store / Google Play).
+3. Install **Expo Go** on your phone (App Store / Google Play). This project
+   targets **Expo SDK 57**, so Expo Go must also be SDK 57.
 4. Scan the QR code printed in the terminal with your phone's camera (iOS) or the
    Expo Go app (Android). The app opens on your device, connected live to your
    computer — edits you make to the code hot-reload on the phone.
@@ -67,6 +68,12 @@ npx expo start --android   # Android Emulator
 
 - **Onboarding** — first launch asks you to pick topics and a daily digest time.
   Saved to on-device storage (`AsyncStorage`), so it only runs once.
+- **Daily** — a ranked list of today’s pack (`rankDaily` in `src/services/daily.ts`):
+  stories from the last ~24 hours in your selected topics, ordered by source
+  weight × recency, capped at 24. Same on-device RSS as Feed; a future
+  `GET /feeds/daily` can replace the local ranker (see
+  [`docs/daily-lane.md`](docs/daily-lane.md)). Empty if nothing recent. Toggle
+  **Daily | Feed** in the home header.
 - **Feed** — a gesture-driven card deck (`SwipeCardStack`, built on
   `react-native-gesture-handler` + `react-native-reanimated`). Each card renders an
   image, headline, source, timestamp, and a ~60-second summary. Swiping right saves
@@ -127,14 +134,15 @@ src/
   data/feeds.ts      Category list + RSS feed source URLs
   services/
     rss.ts           Fetches + parses RSS/RDF/Atom feeds into Article[], incl. image extraction
+    daily.ts         Daily window + rank v1 (`rankDaily`) + `loadHomeLanes` / `fetchDailyPack`
     summarizer.ts     Turns a raw RSS description into a ~60-second digest
     ogImage.ts        Best-effort og:image/twitter:image scrape, used as an image fallback
     storage.ts        AsyncStorage helpers (preferences, saved articles, skipped ids, pending undo, image cache)
     notifications.ts  Schedules the daily local notification
   hooks/useArticleImage.ts   Resolves an article's image: feed → cache → og:image scrape
   context/PreferencesContext.tsx   App-wide preferences state
-  screens/           Onboarding, Feed, Saved, Settings
-  components/        NewsCard, ArticleImage, SwipeCardStack, TimePicker
+  screens/           Onboarding, Feed (Daily | Feed lanes), Saved, Settings
+  components/        NewsCard, ArticleImage, SwipeCardStack, DailyPackList, LaneToggle, TimePicker
   navigation/        Stack navigator (Onboarding -> Feed <-> Settings/Saved)
 ```
 
@@ -195,9 +203,9 @@ whatever Expo Go build you're running, or the app crashes on launch with
 `Exception in HostFunction` inside `NativeWorklets`, before any of your code runs.
 This project pins it explicitly in `package.json`:
 ```json
-"react-native-worklets": "0.5.1"
+"react-native-worklets": "0.10.1"
 ```
-That's the exact version listed for SDK 54 in `expo/bundledNativeModules.json` —
+That's the exact version listed for SDK 57 in `expo/bundledNativeModules.json` —
 without the pin, npm resolves `react-native-worklets` to whatever the newest
 version satisfying `react-native-reanimated`'s internal range is (which drifts
 ahead of what Expo Go actually ships). If you bump `expo`/`react-native-reanimated`,
@@ -207,11 +215,12 @@ pin to match. Also note `babel.config.js` must list `react-native-worklets/plugi
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs on every push/PR to `main`: installs deps,
-type-checks (`tsc --noEmit`), runs `expo-doctor` (advisory — flags dependency
-issues without blocking merges), and does a bundle sanity check
-(`expo export --platform web`) to catch Metro/bundling regressions the same way
-this project's been manually verified throughout development.
+`.github/workflows/ci.yml` runs on every push/PR to `main` (Node 22, required by
+SDK 57): installs deps, type-checks (`tsc --noEmit`), runs unit tests
+(`npm test`), runs `expo-doctor` (advisory — flags dependency issues without
+blocking merges), and does a bundle sanity check (`expo export --platform web`)
+to catch Metro/bundling regressions the same way this project's been manually
+verified throughout development.
 
 ### EAS Update (OTA) — scaffolded, not fully linked
 

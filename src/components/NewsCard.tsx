@@ -70,10 +70,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   imageGradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   categoryPill: {
     position: 'absolute',
