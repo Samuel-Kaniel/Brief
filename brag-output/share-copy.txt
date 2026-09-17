@@ -1,0 +1,1 @@
+Brief is now a swipeable RSS reader: pick topics, save or skip, and get one daily digest — no API key.

@@ -10,7 +10,15 @@ Finance, Science, Health, and Education.
 ## How to use
 
 <p align="center">
-  <img src="docs/screenshot-feed.jpg" alt="Brief feed screen: a swipeable news card with photo, category tag, headline, summary, and source" width="280" />
+  <a href="docs/brief-demo.mp4">
+    <img src="docs/brief-demo.jpg" alt="Brief demo poster: Health news card inside an iPhone frame" width="280" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="docs/brief-demo.mp4">Watch the 20-second demo</a>
+  ·
+  <a href="docs/screenshot-feed.jpg">Feed screenshot</a>
 </p>
 
 Walk through the app in this order:
@@ -21,8 +29,6 @@ Walk through the app in this order:
 4. **Settings** — open the gear icon in the header to change topics or the digest time anytime.
 
 Use **Expo Go** (or a native build) for the full feed. The web preview is CORS-limited: most publisher RSS hosts omit CORS headers, so many sources will not load in the browser.
-
-A full video demo is not in the repo yet. Drop a short recording at [`docs/brief-demo.mp4`](docs/brief-demo.mp4) later and it can replace the screenshot above.
 
 ## Running it on your phone
 
