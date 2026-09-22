@@ -269,25 +269,34 @@ it doesn't build or submit a new binary to the App Store/Play Store.
 
 #### Remaining store / native-build steps
 
-OTA updates are not a substitute for the first native binary. Before
-`eas build` / `eas submit` you still need to (locally, with your Apple/Google
-accounts):
+OTA updates are not a substitute for the first native binary. Store
+identifiers are already in `app.json`: `com.samuelkaniel.brief` on iOS and
+Android, version `1.0.0`, iOS build number `1`, Android `versionCode` `1`,
+and `ITSAppUsesNonExemptEncryption` / `usesNonExemptEncryption` set to
+`false` (HTTPS only). Privacy-policy and support URLs are empty placeholders
+in `expo.extra` until real pages are hosted.
 
-1. Set unique identifiers in `app.json` — `expo.ios.bundleIdentifier` and
-   `expo.android.package` (EAS will prompt if they're missing; pick values you
-   own, e.g. `com.yourname.brief`).
-2. Create an EAS project if you skipped `eas init` above.
-3. Run a store or internal build:
-   ```bash
-   npx eas-cli@latest build --platform ios --profile production
-   npx eas-cli@latest build --platform android --profile production
-   ```
-   (`npx eas-cli@latest build --platform all` is the same first credentials
-   pass in one command.)
-4. Submit with `npx eas-cli@latest submit --platform ios|android --profile production`
-   once the stores have your developer accounts, signing keys, and listing
-   metadata. `eas.json`'s `submit.production` block is an empty placeholder
-   until those credentials exist.
+What you still do by hand — Apple Developer membership, the App Store Connect
+record, hosted privacy and support URLs, the first production build, ASC API
+key, screenshots, age rating, and App Privacy labels — is in
+[`docs/APP_STORE_CHECKLIST.md`](docs/APP_STORE_CHECKLIST.md).
+
+`eas.json`'s `submit.production` block stays `{}` until App Store Connect has
+issued an app id. Do not invent that id, an Apple Team ID, or an Expo
+`projectId`, and do not commit signing keys.
+
+Create an EAS project if you skipped `eas init` above, then run the first
+credentials build locally:
+
+```bash
+npx eas-cli@latest build --platform ios --profile production
+npx eas-cli@latest build --platform android --profile production
+```
+
+(`npx eas-cli@latest build --platform all` is the same first credentials
+pass in one command.) Submit with
+`npx eas-cli@latest submit --platform ios|android --profile production`
+only after the checklist's account, listing, and credential steps are done.
 
 Expo Go (`npx expo start`) remains the way to develop without a custom native
 build. EAS Update only applies to binaries produced by EAS Build (or a

@@ -10,9 +10,19 @@
       "policy": "appVersion"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.samuelkaniel.brief",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.samuelkaniel.brief",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0a0d14",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -23,6 +33,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "privacyPolicyUrl": "",
+      "supportUrl": "",
+      "storeListingTodo": "TODO: set privacyPolicyUrl and supportUrl to real public HTTPS URLs before App Store or Play submission. Do not invent hosted pages. See docs/APP_STORE_CHECKLIST.md."
     },
     "plugins": [
       "expo-notifications",
