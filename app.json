@@ -37,7 +37,7 @@
     "extra": {
       "privacyPolicyUrl": "",
       "supportUrl": "",
-      "storeListingTodo": "TODO: set privacyPolicyUrl and supportUrl to real public HTTPS URLs before App Store or Play submission. Do not invent hosted pages. See docs/APP_STORE_CHECKLIST.md."
+      "storeListingTodo": "TODO: set privacyPolicyUrl and supportUrl to real public HTTPS URLs before App Store submission. Do not invent hosted pages. See docs/APP_STORE_CHECKLIST.md."
     },
     "plugins": [
       "expo-notifications",

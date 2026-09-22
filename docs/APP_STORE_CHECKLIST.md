@@ -1,6 +1,10 @@
-# App Store / Play Store checklist
+# App Store checklist
 
-`app.json` is configuration-ready for a first store binary. The steps below still need a person with Apple, Google, and Expo accounts. Do not invent an Expo project UUID, an Apple Team ID, or App Store Connect credentials, and do not commit secrets (keystores, `.p8` / `.p12` files, ASC API keys, Play service-account JSON, or `EXPO_TOKEN`).
+This release targets the **iOS App Store** only: App Store Connect, TestFlight, and App Review.
+
+`android.package` is `com.samuelkaniel.brief` so the Expo config has the same id on both platforms. There is no Play Console app, Data safety form, or Play submit step in this checklist.
+
+Do not invent an Expo project UUID, an Apple Team ID, or App Store Connect credentials. Do not commit secrets (`.p8` / `.p12` files, ASC API keys, or `EXPO_TOKEN`).
 
 ## Already configured
 
@@ -8,94 +12,81 @@
 | --- | --- |
 | `expo.version` | `1.0.0` |
 | `ios.bundleIdentifier` | `com.samuelkaniel.brief` |
-| `android.package` | `com.samuelkaniel.brief` |
 | `ios.buildNumber` | `"1"` (`CFBundleVersion`) |
-| `android.versionCode` | `1` |
 | `ios.config.usesNonExemptEncryption` | `false` |
 | `ios.infoPlist.ITSAppUsesNonExemptEncryption` | `false` |
+| `android.package` | `com.samuelkaniel.brief` (Expo consistency; not a Play release) |
 | `eas.json` `build.production` | channel `production` (unchanged) |
-| `eas.json` `submit.production` | `{}` on purpose — see [Submit credentials](#7-submit-credentials) |
+| `eas.json` `submit.production` | `{}` on purpose — see [Submit to TestFlight](#5-submit-to-testflight) |
 | `extra.privacyPolicyUrl` / `extra.supportUrl` | empty until real URLs exist |
 | `extra.eas.projectId` | intentionally absent |
 
-`eas.json` sets `cli.appVersionSource` to `local`, so EAS Build uses the version, build number, and version code in `app.json`. Bump `ios.buildNumber` (string) and `android.versionCode` (integer) for every binary you upload. Bump `expo.version` when the user-facing version changes. `runtimeVersion.policy` is `appVersion`, so a version bump also starts a new OTA runtime.
+`eas.json` sets `cli.appVersionSource` to `local`, so EAS Build uses `expo.version` and `ios.buildNumber` from `app.json`. Bump `ios.buildNumber` (string) for every binary you upload. Bump `expo.version` when the user-facing version changes. `runtimeVersion.policy` is `appVersion`, so a version bump also starts a new OTA runtime.
 
-Encryption is standard HTTPS only (RSS and article pages). `false` tells Apple the app does not use non-exempt encryption, which skips the export-compliance prompt on upload. Confirm the same answer in App Store Connect.
+Encryption is standard HTTPS only (RSS and article pages). `false` writes `ITSAppUsesNonExemptEncryption` and tells Apple the app does not use non-exempt encryption. Confirm that same answer on the build in App Store Connect.
 
-## Notification permission strings
+## Notification plist
 
-[Expo SDK 57 `expo-notifications`](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/) says iOS **does not require a usage description**. The permission dialog is the system prompt from `requestPermissionsAsync` in `src/services/notifications.ts`. The config plugin does not set `NSUserNotificationsUsageDescription`, and Apple does not require that key for local notifications, so it is not in `Info.plist`.
+[Expo SDK 57 `expo-notifications`](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/) says iOS does not require a usage-description string. The permission dialog is the system prompt from `requestPermissionsAsync` in `src/services/notifications.ts`. The config plugin does not set `NSUserNotificationsUsageDescription`, and Apple does not require that key for local notifications, so it is not in `Info.plist`.
 
-Do not set the plugin's `enableBackgroundRemoteNotifications` (that adds `UIBackgroundModes` → `remote-notification`). Brief schedules a daily digest on the device. There is no remote push server.
+Leave `enableBackgroundRemoteNotifications` unset. That flag adds `UIBackgroundModes` → `remote-notification`. Brief schedules a daily digest on the device and has no remote push server.
 
-The plugin still adds the `aps-environment` entitlement (Expo's default; Xcode switches a release archive to production). Review notes should say the app does not send remote push.
+The plugin still adds the `aps-environment` entitlement (Expo's default; Xcode switches a release archive to production). Say in the review notes that the app does not send remote push.
 
 ## Manual steps
 
 ### 1. Accounts
 
-- Enroll in the [Apple Developer Program](https://developer.apple.com/programs/) (paid membership). A free Apple ID cannot create an App Store record.
-- Create a [Google Play Console](https://play.google.com/console) developer account if you are shipping Android.
-- Use an Expo account you control for EAS Build (`npx eas-cli@latest login`).
+- Enroll in the [Apple Developer Program](https://developer.apple.com/programs/) (paid membership). A free Apple ID cannot create an App Store Connect record.
+- Use an Expo account you control (`npx eas-cli@latest login`).
 
 ### 2. Host the privacy policy and support page
 
-App Store Connect requires a **Support URL**. A **privacy policy URL** is required on Play and is what you should submit on the App Store as well, because the app stores preferences and saved stories on device and fetches third-party RSS.
+App Store Connect requires a **Support URL**. Host a **privacy policy** as well: the app stores preferences and saved stories on device and fetches third-party RSS, and App Privacy asks you to describe that.
 
 Host real public HTTPS pages, then paste the URLs into:
 
 - `expo.extra.privacyPolicyUrl`
 - `expo.extra.supportUrl`
+- App Store Connect → the app → App Information (privacy policy) and the version's Support URL
 
-and into App Store Connect / Play Console. Clear `extra.storeListingTodo` once both URLs are real.
+Clear `extra.storeListingTodo` once both URLs are real. Leave the extra values as empty strings until those pages exist. Do not invent a domain.
 
-Do not invent a domain or a placeholder page. The extra values stay empty strings until those pages exist.
-
-Suggested facts for the privacy policy (match the app; do not claim analytics or accounts you have not added):
+Facts the policy should match (do not claim analytics or accounts the app does not have):
 
 - No user account and no sign-in.
 - Topic choices, digest time, saved stories, and skip state stay in on-device storage.
 - Headlines come from public RSS feeds. The app also requests article pages when it needs an `og:image`.
-- The daily digest is a **local** notification. No push token is sent to a Brief server.
+- The daily digest is a local notification. No push token is sent to a Brief server.
 - There is no Brief backend account to delete.
 
-**Terms:** Apple's standard EULA is enough for this app. A custom terms URL is optional. Add one in App Store Connect only after you host it. Do not put a fake terms URL in `app.json`.
+**Terms:** Apple's standard EULA is enough. Add a custom terms URL in App Store Connect only after you host one. Do not put a fake terms URL in `app.json`.
 
 ### 3. App Store Connect app record
 
 1. Register the App ID `com.samuelkaniel.brief` (or let the first `eas build` register it).
-2. Create the app in App Store Connect with that bundle ID.
-3. On **App Information**, copy the numeric **Apple ID**. That value is `ascAppId`. It does not exist until this record exists — do not guess it, and do not guess `appleTeamId`.
+2. In App Store Connect, create the iOS app with that bundle ID.
+3. On **App Information**, copy the numeric **Apple ID**. That value is `ascAppId`. It does not exist until this record exists. Do not guess it, and do not guess `appleTeamId`.
 
-`ios.supportsTablet` is `true`, so the listing needs iPhone **and** iPad screenshots.
+`ios.supportsTablet` is `true`, so the version needs iPhone and iPad screenshots.
 
-### 4. Play Console app
+### 4. Link Expo and build the iOS binary
 
-Create the app with package name `com.samuelkaniel.brief`. The package cannot be changed after the first upload.
-
-### 5. Link the Expo project
-
-From the repo root, interactively:
+From the repo root:
 
 ```bash
 npx eas-cli@latest login
 npx eas-cli@latest init
-```
-
-`eas init` writes `expo.extra.eas.projectId`. Commit that real UUID. Do not paste a made-up one. `eas update:configure` (OTA) is separate and still optional; see the README.
-
-### 6. First production build
-
-Signing credentials are created on this first interactive build and stored by EAS. They are not generated by `.eas/workflows/create-production-builds.yml`.
-
-```bash
 npx eas-cli@latest build --platform ios --profile production
-npx eas-cli@latest build --platform android --profile production
 ```
 
-`npx eas-cli@latest build --platform all` is the same first credentials pass. After it succeeds, later workflow builds can reuse the credentials. Do not commit the Android keystore or the iOS distribution certificate.
+`eas init` writes `expo.extra.eas.projectId`. Commit that real UUID. Do not paste a made-up one.
 
-### 7. Submit credentials
+The first iOS build is interactive: EAS creates the distribution certificate and provisioning profile and stores them on Expo's servers. `.eas/workflows/create-production-builds.yml` does not generate those credentials. Do not commit the certificate or the profile.
+
+`eas update:configure` (OTA) is separate and still optional; see the README.
+
+### 5. Submit to TestFlight
 
 `submit.production` stays `{}` until App Store Connect has issued an app id. After step 3, the only store id that belongs in git is that numeric id:
 
@@ -111,7 +102,7 @@ npx eas-cli@latest build --platform android --profile production
 }
 ```
 
-Leave `appleTeamId`, `appleId`, ASC API key paths, and the Play service-account path out of the repo.
+Leave `appleTeamId`, `appleId`, and ASC API key paths out of the repo.
 
 Configure the ASC API key on your machine (not in git):
 
@@ -121,33 +112,33 @@ npx eas-cli@latest credentials --platform ios
 
 Choose the production profile, then **App Store Connect → Manage your API Key → Set up your project to use an API Key**. Alternatively, keep an app-specific password in `EXPO_APPLE_APP_SPECIFIC_PASSWORD` outside the repo.
 
-For Play, create a service-account JSON in Play Console and give it to `eas submit` via EAS credentials or a local path that is gitignored. Do not commit the JSON.
-
-Submit after the binary exists:
+Upload the finished binary:
 
 ```bash
 npx eas-cli@latest submit --platform ios --profile production
-npx eas-cli@latest submit --platform android --profile production
 ```
 
-### 8. Listing metadata for review
+Processing usually finishes in 10–15 minutes. The build then shows under **TestFlight**. Export compliance should already be answered by `ITSAppUsesNonExemptEncryption` = false; if App Store Connect still asks, answer that the app uses only standard HTTPS encryption.
 
-- Screenshots for the required device sizes (include iPad).
+Internal TestFlight can use that build without App Review. External TestFlight groups and the App Store release both go through review.
+
+### 6. App Review
+
+Fill in the version in App Store Connect, attach the TestFlight build, and complete:
+
+- Screenshots for the required iPhone sizes and for iPad.
 - Age rating questionnaire.
-- **App Privacy** nutrition labels. Accurate answers for the current app:
-  - No account, no contact info collected by Brief.
-  - Preferences and saved articles are stored on device.
+- **App Privacy** nutrition labels. For the current app:
+  - No account and no contact info collected by Brief.
+  - Preferences and saved articles stay on device.
   - The app contacts third-party publishers to load public RSS (and occasional article HTML for images).
-  - Notifications are local. Do not declare a push-notification data type unless you add remote push later.
+  - Notifications are local. Declare a push-notification data type only if you add remote push later.
   - No tracking, unless you later add an SDK that tracks.
-- **Review notes** (paste into App Review Information):
+- **Review notes** (App Review Information):
 
   > Brief is a news reader. It loads public RSS feeds. There is no account and no login. Saved stories and topic preferences stay on the device. The daily digest is a local notification scheduled on the device; there is no push backend. Notifications can be turned off in Settings.
 
-- Export compliance: the app uses only standard exempt encryption (HTTPS). This matches `ITSAppUsesNonExemptEncryption` = false.
+- Export compliance: standard exempt encryption (HTTPS), matching `ITSAppUsesNonExemptEncryption` = false.
+- Support URL and privacy policy URL from step 2.
 
-### 9. Play Data safety and content rating
-
-- Complete the Data safety form (on-device storage, no account, RSS fetched from publishers) and the content-rating questionnaire.
-- Paste the same privacy policy URL into the store listing.
-- The daily notification uses a local daily trigger. If the merged manifest requests exact alarms (`SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM`), complete Play's Alarms & reminders declaration before production release. `RECEIVE_BOOT_COMPLETED` and notification permission are added by `expo-notifications` so a scheduled digest can be restored after reboot and so Android 13 can prompt for notification permission.
+Submit the version for review when that metadata is complete. TestFlight processing alone does not send the app to the App Store.
